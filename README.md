@@ -2,15 +2,18 @@
 ClickHouse JDBC driver
 ===============
 
+**由于官方驱动中，高并发情况下会无限创建http连接，导致错误，因此使用http连接池进行控制**
+
 This is a basic and restricted implementation of jdbc driver for ClickHouse.
 It has support of a minimal subset of features to be usable.
 
 ### Usage
+> 重新编译后从私有仓库中引入
 ```xml
 <dependency>
     <groupId>ru.yandex.clickhouse</groupId>
     <artifactId>clickhouse-jdbc</artifactId>
-    <version>0.1.53</version>
+    <version>0.1-SNAPSHOT</version>
 </dependency>
 ```
 

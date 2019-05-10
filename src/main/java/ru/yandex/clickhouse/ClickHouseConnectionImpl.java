@@ -16,23 +16,7 @@ import ru.yandex.clickhouse.util.guava.StreamUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.sql.Struct;
+import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -68,13 +52,16 @@ public class ClickHouseConnectionImpl implements ClickHouseConnection {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
-        ClickHouseHttpClientBuilder clientBuilder = new ClickHouseHttpClientBuilder(this.properties);
+//        ClickHouseHttpClientBuilder clientBuilder = new ClickHouseHttpClientBuilder(this.properties);
         log.debug("new connection");
         try {
-            httpclient = clientBuilder.buildClient();
+//            httpclient = clientBuilder.buildClient();
+            // single model
+            httpclient = ClickHouseHttpClientBuilder.buildClient();
         }catch (Exception e) {
             throw  new IllegalStateException("cannot initialize http client", e);
         }
+
         initTimeZone(this.properties);
     }
 
@@ -374,7 +361,9 @@ public class ClickHouseConnectionImpl implements ClickHouseConnection {
         try {
             ClickHouseProperties properties = new ClickHouseProperties(this.properties);
             properties.setConnectionTimeout((int) TimeUnit.SECONDS.toMillis(timeout));
-            CloseableHttpClient client = new ClickHouseHttpClientBuilder(properties).buildClient();
+//            CloseableHttpClient client = new ClickHouseHttpClientBuilder(properties).buildClient();
+            // single model
+            CloseableHttpClient client = ClickHouseHttpClientBuilder.buildClient();
             Statement statement = createClickHouseStatement(client);
             statement.execute("SELECT 1");
             statement.close();
