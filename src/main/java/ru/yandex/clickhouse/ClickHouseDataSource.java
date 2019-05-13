@@ -1,6 +1,7 @@
 package ru.yandex.clickhouse;
 
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
+import ru.yandex.clickhouse.util.ClickHouseHttpClientBuilder;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -37,6 +38,8 @@ public class ClickHouseDataSource implements DataSource {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+        //init Http connectionPools
+        ClickHouseHttpClientBuilder.initProp(properties);
     }
 
     @Override

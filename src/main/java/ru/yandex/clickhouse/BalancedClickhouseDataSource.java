@@ -2,6 +2,7 @@ package ru.yandex.clickhouse;
 
 import org.slf4j.LoggerFactory;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
+import ru.yandex.clickhouse.util.ClickHouseHttpClientBuilder;
 import ru.yandex.clickhouse.util.apache.StringUtils;
 
 import javax.sql.DataSource;
@@ -123,6 +124,9 @@ public class BalancedClickhouseDataSource implements DataSource {
 
         this.allUrls = Collections.unmodifiableList(allUrls);
         this.enabledUrls = this.allUrls;
+
+        //init Http connectionPools
+        ClickHouseHttpClientBuilder.initProp(properties);
     }
 
     static List<String> splitUrl(final String url) {
