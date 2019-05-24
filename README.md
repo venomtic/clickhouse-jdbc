@@ -2,7 +2,7 @@
 ClickHouse JDBC driver
 ===============
 
-**由于官方驱动中，高并发情况下会无限创建http连接，导致错误，因此使用http连接池进行控制**
+**由于官方驱动中，http客户端会无限创建http连接，如果连接回收较慢，将会服务器连接过多异常，因此使用http连接池进行控制**
 
 This is a basic and restricted implementation of jdbc driver for ClickHouse.
 It has support of a minimal subset of features to be usable.
