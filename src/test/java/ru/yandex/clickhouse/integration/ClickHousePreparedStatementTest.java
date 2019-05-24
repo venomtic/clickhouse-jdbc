@@ -10,19 +10,22 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Types;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
-
-import com.google.common.io.BaseEncoding;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.google.common.io.BaseEncoding;
+
 import ru.yandex.clickhouse.ClickHouseArray;
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHouseDataSource;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
+import ru.yandex.clickhouse.ClickHousePreparedStatementImpl;
 import ru.yandex.clickhouse.response.ClickHouseResponse;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
@@ -479,7 +482,98 @@ public class ClickHousePreparedStatementTest {
         metaStmt.setInt(2, 42);
         ResultSetMetaData metadata = metaStmt.getMetaData();
         Assert.assertNull(metadata);
+        metaStmt.close();
     }
 
+    @Test
+    public void testInsertWithFunctions() throws Exception {
+        connection.createStatement().execute(
+            "DROP TABLE IF EXISTS test.insertfunctions");
+        connection.createStatement().execute(
+            "CREATE TABLE IF NOT EXISTS test.insertfunctions "
+          + "(id UInt32, foo String, bar String) "
+          + "ENGINE = TinyLog");
+        PreparedStatement stmt = connection.prepareStatement(
+            "INSERT INTO test.insertfunctions(id, foo, bar) VALUES "
+          + "(?, lower(reverse(?)), upper(reverse(?)))");
+        stmt.setInt(1, 42);
+        stmt.setString(2, "Foo");
+        stmt.setString(3, "Bar");
+        String sql = stmt.unwrap(ClickHousePreparedStatementImpl.class).asSql();
+        Assert.assertEquals(
+            sql,
+            "INSERT INTO test.insertfunctions(id, foo, bar) VALUES "
+          + "(42, lower(reverse('Foo')), upper(reverse('Bar')))");
+        // make sure that there is no exception
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery(
+            "SELECT id, foo, bar FROM test.insertfunctions");
+        rs.next();
+        Assert.assertEquals(rs.getInt(1), 42);
+        Assert.assertEquals(rs.getString(2), "oof");
+        Assert.assertEquals(rs.getString(3), "RAB");
+        rs.close();
+    }
 
+    @Test
+    public void testInsertWithFunctionsAddBatch() throws Exception {
+        connection.createStatement().execute(
+            "DROP TABLE IF EXISTS test.insertfunctions");
+        connection.createStatement().execute(
+            "CREATE TABLE IF NOT EXISTS test.insertfunctions "
+          + "(id UInt32, foo String, bar String) "
+          + "ENGINE = TinyLog");
+        PreparedStatement stmt = connection.prepareStatement(
+            "INSERT INTO test.insertfunctions(id, foo, bar) VALUES "
+          + "(?, lower(reverse(?)), upper(reverse(?)))");
+        stmt.setInt(1, 42);
+        stmt.setString(2, "Foo");
+        stmt.setString(3, "Bar");
+        stmt.addBatch();
+        stmt.executeBatch();
+        // this will _not_ perform the functions, but instead send the parameters
+        // as is to the clickhouse server
+    }
+
+    @SuppressWarnings("boxing")
+    @Test
+    public void testMultiLineValues() throws Exception {
+
+        connection.createStatement().execute(
+            "DROP TABLE IF EXISTS test.multiline");
+        connection.createStatement().execute(
+            "CREATE TABLE IF NOT EXISTS test.multiline"
+          + "(foo Int32, bar String) "
+          + "ENGINE = TinyLog"
+        );
+        PreparedStatement insertStmt = connection.prepareStatement(
+            "INSERT INTO test.multiline\n"
+          + "\t(foo, bar)\r\n"
+          + "\t\tVALUES\n"
+          + "(?, ?) , \n\r"
+          + "\t(?,?),(?,?)\n");
+        Map<Integer, String> testData = new HashMap<Integer, String>();
+        testData.put(23, "baz");
+        testData.put(42, "bar");
+        testData.put(1337, "oof");
+        int i = 0;
+        for (Integer k : testData.keySet()) {
+            insertStmt.setInt(++i, k.intValue());
+            insertStmt.setString(++i, testData.get(k));
+        }
+        insertStmt.executeUpdate();
+
+        ResultSet rs = connection.createStatement().executeQuery(
+            "SELECT * FROM test.multiline ORDER BY foo");
+        rs.next();
+        Assert.assertEquals(rs.getInt(1), 23);
+        Assert.assertEquals(rs.getString(2), "baz");
+        rs.next();
+        Assert.assertEquals(rs.getInt(1), 42);
+        Assert.assertEquals(rs.getString(2), "bar");
+        rs.next();
+        Assert.assertEquals(rs.getInt(1), 1337);
+        Assert.assertEquals(rs.getString(2), "oof");
+        Assert.assertFalse(rs.next());
+    }
 }

@@ -17,7 +17,8 @@ import ru.yandex.clickhouse.util.apache.StringUtils;
 final class PreparedStatementParser  {
 
     private static final Pattern VALUES = Pattern.compile(
-        "(?i)INSERT\\s+INTO\\s+.+VALUES\\s*\\(");
+        "(?i)INSERT\\s+INTO\\s+.+VALUES\\s*\\(",
+        Pattern.MULTILINE | Pattern.DOTALL);
 
     private List<List<String>> parameters;
     private List<String> parts;
@@ -118,7 +119,8 @@ final class PreparedStatementParser  {
                     if (valuesMode && idxEnd > idxStart) {
                         currentParamList.add(typeTransformParameterValue(sql.substring(idxStart, idxEnd)));
                         parts.add(sql.substring(partStart, idxStart));
-                        partStart = idxStart = idxEnd = i;
+                        partStart = idxEnd;
+                        idxStart = idxEnd = i;
                     }
                     idxStart++;
                     idxEnd++;
@@ -132,7 +134,8 @@ final class PreparedStatementParser  {
                        if (idxEnd > idxStart) {
                            currentParamList.add(typeTransformParameterValue(sql.substring(idxStart, idxEnd)));
                            parts.add(sql.substring(partStart, idxStart));
-                           partStart = idxStart = idxEnd = i;
+                           partStart = idxEnd;
+                           idxStart = idxEnd = i;
                        }
                        if (!currentParamList.isEmpty()) {
                            parameters.add(currentParamList);
