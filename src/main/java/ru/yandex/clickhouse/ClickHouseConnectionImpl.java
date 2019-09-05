@@ -190,6 +190,10 @@ public class ClickHouseConnectionImpl implements ClickHouseConnection {
 
     @Override
     public void close() throws SQLException {
+       // here can not close the http client pool,see function confirmClose
+    }
+
+    private void confirmClose() throws  SQLException {
         try {
             httpclient.close();
             closed = true;
@@ -430,7 +434,7 @@ public class ClickHouseConnectionImpl implements ClickHouseConnection {
     }
 
     public void abort(Executor executor) throws SQLException {
-        this.close();
+        this.confirmClose();
     }
 
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
